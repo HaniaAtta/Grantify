@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grants Scout</title>
+  <link rel="icon" type="image/x-icon" href="/image/logo.ico">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+</head>
+
+<body class="bg-[#83c5be] text-gray-800">
+  <div class="min-h-screen flex flex-col">
+ 
+    <!-- Header -->
+    <header class="shadow-md p-6 flex flex-col items-center justify-center" style="background-color:#83c5be">
+      <h1 class="text-4xl font-extrabold text-center" style="color:#03626b">Grantify Dashboard</h1>
+   
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 container mx-auto p-6 space-y-6">
+
+      <!-- URL Submission Form -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 animate__animated animate__fadeInDown">
+        <form id="urlForm" class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+          <input type="url" id="urlInput" placeholder="Enter grant URL" required
+            class="flex-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 transition"
+            style="--tw-ring-color:#006d77"/>
+          <button type="submit"
+            class="text-white px-6 py-3 rounded-lg shadow transition animate__animated animate__pulse animate__infinite animate__slow"
+            style="background-color:#006d77">
+            Check & Add URL
+          </button>
+        </form>
+        <p id="formMessage" class="mt-2 text-sm"></p>
+      </div>
+
+      <!-- Stats Overview -->
+      <div class="flex justify-center pl-64">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12 w-full max-w-6xl mx-auto">
+          <!-- Card 1 -->
+          <div class="bg-white rounded-2xl shadow-lg p-6 animate__animated animate__zoomIn text-center">
+            <h3 class="text-sm uppercase text-gray-500">Total Grants</h3>
+            <p class="text-3xl font-bold" style="color:#006d77">{{ total_grants }}</p>
+          </div>
+        
+          <!-- Card 2 -->
+          <div class="bg-white rounded-2xl shadow-lg p-6 animate__animated animate__zoomIn animate__delay-1s text-center">
+            <h3 class="text-sm uppercase text-gray-500">Open Grants</h3>
+            <p class="text-3xl font-bold" style="color:#03626b">{{ open_count }}</p>
+          </div>
+        
+          <!-- Card 3 -->
+          <div class="bg-white rounded-2xl shadow-lg p-6 animate__animated animate__zoomIn animate__delay-2s text-center">
+            <h3 class="text-sm uppercase text-gray-500">Closed Grants</h3>
+            <p class="text-3xl font-bold text-red-500">{{ closed_count }}</p>
+          </div>
+        
+        </div>
+        </div>
+
+      <!-- Grants Table -->
+      <div class="bg-white rounded-2xl shadow-lg overflow-auto animate__animated animate__fadeInUp">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Added</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for grant in grants %}
+            <tr class="hover:bg-gray-100 transition">
+              <td class="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">{{ grant[0] }}</td>
+              <td class="px-6 py-4 text-sm whitespace-nowrap hover:underline" style="color:#006d77">
+                <a href="{{ grant[1] }}" target="_blank">{{ grant[1] }}</a>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-3 py-1 rounded-full text-sm font-semibold uppercase"
+                      style="background-color: {{ 'rgba(131, 197, 190, 0.3)' if grant[2] == 'open' else 'rgba(255, 100, 100, 0.2)' }};
+                             color: {{ '#03626b' if grant[2] == 'open' else '#b91c1c' }}">
+                  {{ grant[2] | capitalize }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ grant[3] }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{{ grant[4] }}</td>
+              <td class="px-6 py-4 text-right text-sm font-medium">
+                <button 
+  onclick="removeGrant({{ grant[0] }})"
+  class="transition" style="color:#b91c1c">
+  Remove
+</button>
+
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="shadow-inner p-4 text-center text-sm" style="background-color:#83c5be; color:#03626b">
+      &copy; {{ current_year }} Grants Scout. All rights reserved.
+    </footer>
+  </div>
+
+  <!-- JS -->
+  <script>
+    document.getElementById("urlForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const url = document.getElementById("urlInput").value;
+      const response = await fetch("/api/submit-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+
+      const result = await response.json();
+      const messageBox = document.getElementById("formMessage");
+      messageBox.textContent = result.message;
+      messageBox.style.color = result.status === "success" ? "#03626b" : "#b91c1c";
+
+      if (result.status === "success") {
+        setTimeout(() => location.reload(), 2000);
+      }
+    });
+
+    async function removeGrant(id) {
+      const confirmDelete = confirm("Remove this grant?");
+      if (!confirmDelete) return;
+  
+      try {
+        const res = await fetch(`/api/remove-url/${id}`, { method: "DELETE" });
+        const data = await res.json();
+  
+        if (data.status === "success") {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert("Failed to delete: " + data.message);
+        }
+      } catch (err) {
+        console.error("Delete error:", err);
+        alert("An error occurred. Check console for details.");
+      }
+    }
+  </script>
+</body>
+</html>
